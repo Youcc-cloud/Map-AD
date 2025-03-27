@@ -1,0 +1,34 @@
+﻿Import-Module ActiveDirectory
+
+# Get all computer objects in the dom
+$computers = Get-ADComputer -Filter *
+
+# Array to store computer logon information
+$logonInfo = @()
+
+foreach ($computer in $computers) {
+    # Get the last logon timestamp for each computer
+    $lastLogon = Get-ADComputer -Identity $computer -Properties LastLogonTimestamp |
+                 Select-Object -ExpandProperty LastLogonTimestamp
+
+    # Convert the last logon timestamp to a readable format
+    if ($lastLogon -ne $null) {
+        $lastLogonDateTime = [DateTime]::FromFileTime($lastLogon)
+
+        # Create an object with computer information
+        $logonObject = [PSCustomObject]@{
+            ComputerName = $computer.Name
+            LastLogonTime = $lastLogonDateTime
+        }
+
+        # Add the object to the array
+        $logonInfo += $logonObject
+    } else {
+        Write-Output "Last Logon Time for $($computer.Name) not available."
+    }
+}
+
+# Export the logon information to CSV
+$logonInfo | Export-Csv -Path "C:\ExportInfo\ComputerLastLogon.csv" -NoTypeInformation
+
+Write-Output "Logon information exported to C:\ExportInfo\ComputerLastLogon.csv"
